@@ -1,0 +1,6 @@
+input_int: 2
+input_bool: true
+input_string: 'hello, world!'
+input_file_a:
+  class: File
+  path: ../../tests/data/test_input.txt
