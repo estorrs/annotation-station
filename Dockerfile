@@ -32,4 +32,5 @@ RUN pip install -r /requirements.txt
 COPY . /annotation-station
 WORKDIR /annotation-station
 
-CMD bash setup.sh && /bin/bash
+CMD /bin/bash
+#CMD bash setup.sh && /bin/bash

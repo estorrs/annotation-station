@@ -1,0 +1,5 @@
+input_header: true
+input_type: "tsv"
+input_file:
+  class: File
+  path: ../../tests/data/test.tsv

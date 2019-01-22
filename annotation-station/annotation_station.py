@@ -2,48 +2,65 @@ import argparse
 import os
 import subprocess
 
+import transvar_wrapper
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument('input_file', type=str,
         help='input file')
 
-# example of an argument group
-input_str_group = parser.add_argument_group('input_str_group')
-input_str_group.add_argument('--input-string', type=str,
-        help='an input string')
-
-parser.add_argument('input_bool', action='store_true',
-        help='fp to be used for readcount output')
-parser.add_argument('--input-int', type=int,
-        default=2, help='an input int')
+parser.add_argument('--input-header', action='store_true',
+        help='Whether input tsv file has header or not')
+parser.add_argument('--output', type=str,
+        default='output.tsv', help='output fp')
+parser.add_argument('--input-type', type=str,
+        help='Type of input file. Options are tsv and json.')
 
 args = parser.parse_args()
 
 def check_arguments():
-    if args.input_str is None:
-        raise ValueError('Must specify an input string')
+    if args.input_type is None:
+        raise ValueError('Must specify an input type')
+
+def check_transvar_setup():
+    """Will set up transvar if needed"""
+    try:
+        result = transvar_wrapper.get_gene_strand_region_tup('chr1', '12345')
+    except subprocess.CalledProcessError:
+        print('Setting up transvar')
+        tool_args = ['transvar', 'config', '--download_ref', '--refversion', 'hg38']
+        subprocess.check_output(tool_args)
+    
+        tool_args = ['transvar', 'config', '--download_anno', '--refversion', 'hg38']
+        subprocess.check_output(tool_args)
+        print('finished transvar setup')
 
 
-def run_stuff(input_file, input_str, input_bool, input_int):
-    """Run mytool"""
-    tool_args = ['blah', 'beep',
-            '-@', str(input_int),
-            '-i', input_str]
+def annotate_tsv(input_fp, output_fp, input_header=False):
+    f = open(input_fp)
+    out_f = open(output_fp, 'w')
+    
+    if input_header:
+        out_f.write(f.readline()[:-1] + '\tGENE\tSTRAND\tPOSITION\n')
+    
+    for line in f:
+        pieces = line.strip().split('\t', 2)
+        chrom = pieces[0]
+        pos = pieces[1]
 
-    if input_bool:
-        tool_args += ['-b', 'stuff']
+        gene, strand, region = transvar_wrapper.get_gene_strand_region_tup(chrom, pos)
+        
+        out_f.write(line[:-1] + f'\t{gene}\t{strand}\t{region}\n')
 
-    tool_args.append(input_file)
-
-    print('mytool is executing blah step')
-    print(f'blah is executing the following command: {" ".join(tool_args)}')
-    print(subprocess.check_output(tool_args).decode('utf-8'))
-
+    f.close()
+    out_f.close()
 
 def main():
     check_arguments()
 
-    run_stuff(args.input_file, args.input_str, args.input_book, args.input_int)
+    check_transvar_setup()
+
+    annotate_tsv(args.input_file, args.output, input_header=args.input_header)
 
 if __name__ == '__main__':
     main()

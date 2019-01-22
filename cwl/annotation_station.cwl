@@ -2,44 +2,35 @@ class: CommandLineTool
 cwlVersion: v1.0
 $namespaces:
   sbg: 'https://www.sevenbridges.com/'
-id: mytool
+id: annotation-station
 baseCommand:
   - python
-  - /skeleton-cwl/mytool/mytool.py
+  - /annotation-station/annotation-station/annotation_station.py
 inputs:
-  - id: input_int
-    type: int?
-    inputBinding:
-      position: 0
-      prefix: '--input-int'
-  - id: input_bool
-    type: boolean?
-    inputBinding:
-      position: 0
-      prefix: '--input-bool'
-  - id: input_string
+  - id: input_type
     type: string?
     inputBinding:
       position: 0
-      prefix: '--input-string'
-  - id: input_file_a
+      prefix: '--input-type'
+  - id: input_header
+    type: boolean?
+    inputBinding:
+      position: 0
+      prefix: '--input-header'
+  - id: input_file
     type: File
     inputBinding:
       position: 99
 outputs:
-  - id: output_a
+  - id: output_file
     type: File?
     outputBinding:
-      glob: *.output.ext
-  - id: output_b
-    type: File?
-    outputBinding:
-      glob: output_b.ext
-label: mytool
+      glob: output.tsv
+label: annotation-station
 arguments:
   - position: 0
-    prefix: '--output-fp'
-    valueFrom: output.ext
+    prefix: '--output'
+    valueFrom: output.tsv
 requirements:
   - class: DockerRequirement
-    dockerPull: 'repo/mytool:0.0.1'
+    dockerPull: 'estorrs/annotation-station:0.0.1'
