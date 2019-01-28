@@ -8,6 +8,9 @@ def parse_transvar_output(transvar_output):
         if 'input' not in line:
             pieces = line.strip().split('\t')
 
+            if len(pieces) < 6:
+                return '.', '.', '.'
+
             gene = pieces[2]
             strand = pieces[3]
             region = pieces[5]
