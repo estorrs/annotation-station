@@ -12,6 +12,7 @@ TEST_OUTPUT_FILE_2 = os.path.join(TEST_DATA_DIR, 'test.output.tsv')
 def test_transvar_annotation():
     tool_args = ['python', 'annotation-station/annotation_station.py',
             '--input-header',
+            '--annotate-transvar',
             '--output', TEST_OUTPUT_FILE_1,
             '--input-type', 'tsv',
             TEST_INPUT_FILE_1]
@@ -23,6 +24,7 @@ def test_transvar_annotation():
 def test_transvar_annotation_brca():
     tool_args = ['python', 'annotation-station/annotation_station.py',
             '--input-header',
+            '--annotate-transvar',
             '--output', TEST_OUTPUT_FILE_2,
             '--input-type', 'tsv',
             TEST_INPUT_FILE_2]
