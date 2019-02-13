@@ -3,6 +3,7 @@ import os
 import subprocess
 
 import transvar_wrapper
+import repeats
 
 parser = argparse.ArgumentParser()
 
@@ -12,11 +13,11 @@ parser.add_argument('input_file', type=str,
 annotation_group = parser.add_argument_group('argument_group') 
 annotation_group.add_argument('--annotate-transvar', action='store_true',
         help='If present, transvar annotations will be added to input file. \
-If --ensembl-transcript is also provided, the annotation for that transcript will be done. \
-Added fields will be TRANSCRIPT, GENE, STRAND, REGION, and INFO.')
-annotation_group.add_argument('--annotate-alu', action='store_true',
-        help='If present, ALU annotation will be done. \
-Boolean IS_ALU and ALU_SUBTYPE fields will be added.')
+Added fields will be PRIMARY_TRANSCRIPT, GENE, STRAND, REGION, NON_VERBOSE_REGION, and INFO.')
+annotation_group.add_argument('--annotate-repeats', action='store_true',
+        help='If present, annotation for repeats will be done. i.e. for finding ALUs and stuff. \
+Added fields will be REPEAT_NAME, REPEAT_CLASS, and REPEAT_FAMILY. \
+Entry will be . if position is not a repeat.')
 annotation_group.add_argument('--annotate-blast', action='store_true',
         help='If present, annotations for BLAST will be done. \
 Added fields will include HI')
@@ -27,8 +28,6 @@ parser.add_argument('--output', type=str,
         default='output.tsv', help='output fp')
 parser.add_argument('--input-type', type=str,
         help='Type of input file. Options are tsv and json.')
-parser.add_argument('--ensembl-transcript', type=str,
-        default=None, help='Ensembl transcript to use with transvar annotations')
 
 args = parser.parse_args()
 
@@ -51,14 +50,33 @@ def check_transvar_setup():
         subprocess.check_output(tool_args)
         print('finished transvar setup')
 
-def annotate_transvar_tsv(fp, input_header=False, ensembl_transcript=None):
+def get_simplified_region(transvar_region):
+    """Converts transvar region to a simplified region
+
+    Possible values: CODING_EXONIC, NON_CODING_EXONIC, INTRONIC, 5UTR, 3UTR, INTERGENIC, .
+    """
+    if 'cds_in_exon' in transvar_region:
+        return 'CODING_EXONIC'
+    elif '5-UTR' in transvar_region:
+        return '5UTR'
+    elif '3-UTR' in transvar_region:
+        return '3UTR'
+    elif 'noncoding_exon' in transvar_region:
+        return 'NON_CODING_EXONIC'
+    elif 'intron' in transvar_region:
+        return 'INTRONIC'
+    elif 'intergenic' in transvar_region:
+        return 'INTERGENIC'
+    return '.'
+
+def annotate_transvar_tsv(fp, input_header=False):
     """Annotate transvar tsv"""
     out_lines = []
 
     f = open(fp)
 
     if input_header:
-        out_lines.append(f.readline()[:-1] + '\tTRANSCRIPT\tGENE\tSTRAND\tREGION\tINFO\n')
+        out_lines.append(f.readline()[:-1] + '\tPRIMARY_TRANSCRIPT\tGENE\tSTRAND\tREGION\tNON_VERBOSE_REGION\tINFO')
 
     for line in f:
         pieces = line.strip().split('\t', 2)
@@ -66,9 +84,10 @@ def annotate_transvar_tsv(fp, input_header=False, ensembl_transcript=None):
         pos = pieces[1]
 
         transcript, gene, strand, region, info = transvar_wrapper.get_transcript_gene_strand_region_info_tup(
-                chrom, pos, ensembl_transcript=ensembl_transcript)
+                chrom, pos)
+        simplified_region = get_simplified_region(region)
 
-        out_lines.append(line[:-1] + f'\t{transcript}\t{gene}\t{strand}\t{region}\t{info}\n')
+        out_lines.append(line[:-1] + f'\t{transcript}\t{gene}\t{strand}\t{region}\t{simplified_region}\t{info}')
     f.close()
 
     output_str = '\n'.join(out_lines) + '\n'
@@ -77,24 +96,35 @@ def annotate_transvar_tsv(fp, input_header=False, ensembl_transcript=None):
     f.write(output_str)
     f.close()
 
-# def annotate_tsv(input_fp, output_fp, input_header=False):
-#     f = open(input_fp)
-#     out_f = open(output_fp, 'w')
-#     
-#     if input_header:
-#         out_f.write(f.readline()[:-1] + '\tGENE\tSTRAND\tPOSITION\n')
-#     
-#     for line in f:
-#         pieces = line.strip().split('\t', 2)
-#         chrom = pieces[0]
-#         pos = pieces[1]
-# 
-#         gene, strand, region = transvar_wrapper.get_gene_strand_region_tup(chrom, pos)
-#         
-#         out_f.write(line[:-1] + f'\t{gene}\t{strand}\t{region}\n')
-# 
-#     f.close()
-#     out_f.close()
+def annotate_repeats_tsv(fp, input_header=False):
+    """Annotate repeats tsv"""
+    out_lines = []
+
+    f = open(fp)
+
+    if input_header:
+        out_lines.append(f.readline()[:-1] + '\tREPEAT_NAME\tREPEAT_CLASS\tREPEAT_FAMILY')
+
+    for line in f:
+        pieces = line.strip().split('\t', 2)
+        chrom = pieces [0]
+        pos = pieces[1]
+
+        repeat = repeats.get_repeat_by_position(chrom, pos)
+
+        if repeat is not None:
+            repeat_name, repeat_class, repeat_family = repeat
+        else:
+            repeat_name, repeat_class, repeat_family = '.', '.', '.'
+
+        out_lines.append(line[:-1] + f'\t{repeat_name}\t{repeat_class}\t{repeat_family}')
+    f.close()
+
+    output_str = '\n'.join(out_lines) + '\n'
+    # write over old file
+    f = open(fp, 'w')
+    f.write(output_str)
+    f.close()
 
 def main():
     check_arguments()
@@ -108,10 +138,9 @@ def main():
 
     if args.annotate_transvar:
         check_transvar_setup()
-        annotate_transvar_tsv(args.output, input_header=args.input_header,
-            ensembl_transcript=args.ensembl_transcript)
-#     if args.annotate_alu:
-#         annotate_alu_tsv(args.output)
+        annotate_transvar_tsv(args.output, input_header=args.input_header)
+    if args.annotate_repeats:
+        annotate_repeats_tsv(args.output, input_header=args.input_header)
 #     if args.annotate_blast:
 #         annotate_blast_tsv(args.output)
 

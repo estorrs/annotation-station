@@ -1,5 +1,7 @@
 input_header: true
+annotate_transvar: true
+annotate_repeats: true
 input_type: "tsv"
 input_file:
   class: File
-  path: ../../tests/data/test.tsv
+  path: ../../tests/data/repeats.tsv

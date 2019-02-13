@@ -6,8 +6,10 @@ import pytest
 TEST_DATA_DIR = 'tests/data/'
 TEST_INPUT_FILE_1 = os.path.join(TEST_DATA_DIR, 'threshold.tsv')
 TEST_INPUT_FILE_2 = os.path.join(TEST_DATA_DIR, 'test.tsv')
+REPEATS_INPUT_FILE = os.path.join(TEST_DATA_DIR, 'repeats.tsv')
 TEST_OUTPUT_FILE_1 = os.path.join(TEST_DATA_DIR, 'threshold.output.tsv')
 TEST_OUTPUT_FILE_2 = os.path.join(TEST_DATA_DIR, 'test.output.tsv')
+REPEATS_OUTPUT_FILE = os.path.join(TEST_DATA_DIR, 'repeats.output.tsv')
 
 def test_transvar_annotation():
     tool_args = ['python', 'annotation-station/annotation_station.py',
@@ -19,7 +21,7 @@ def test_transvar_annotation():
     
     results = subprocess.check_output(tool_args).decode('utf-8')
 
-    assert True
+    assert 'WASH7P' in open(TEST_OUTPUT_FILE_1).read()
 
 def test_transvar_annotation_brca():
     tool_args = ['python', 'annotation-station/annotation_station.py',
@@ -31,4 +33,32 @@ def test_transvar_annotation_brca():
     
     results = subprocess.check_output(tool_args).decode('utf-8')
 
-    assert True
+    o = open(TEST_OUTPUT_FILE_2).read()
+    assert 'BRCA1' in o and 'ENST00000471181' in o
+
+def test_repeats_annotation():
+    tool_args = ['python', 'annotation-station/annotation_station.py',
+            '--input-header',
+            '--annotate-repeats',
+            '--output', REPEATS_OUTPUT_FILE,
+            '--input-type', 'tsv',
+            REPEATS_INPUT_FILE]
+    
+    results = subprocess.check_output(tool_args).decode('utf-8')
+
+    l = [x for x in open(REPEATS_OUTPUT_FILE) if 'AluSc' in x][0]
+    assert '43048295' in l
+
+def test_all_annotation():
+    tool_args = ['python', 'annotation-station/annotation_station.py',
+            '--input-header',
+            '--annotate-repeats',
+            '--annotate-transvar',
+            '--output', REPEATS_OUTPUT_FILE,
+            '--input-type', 'tsv',
+            REPEATS_INPUT_FILE]
+    
+    results = subprocess.check_output(tool_args).decode('utf-8')
+
+    l = [x for x in open(REPEATS_OUTPUT_FILE) if 'AluSc' in x][0]
+    assert '43048295' in l and 'BRCA1' in l and 'ENST00000471181' in l
