@@ -22,11 +22,21 @@ inputs:
     inputBinding:
       position: 0
       prefix: '--annotate-repeats'
+  - id: repeats_table
+    type: File?
+    inputBinding:
+      position: 0
+      prefix: '--repeats-table'
   - id: annotate_transvar
     type: boolean?
     inputBinding:
       position: 0
       prefix: '--annotate-transvar'
+  - id: primary_transcripts
+    type: File?
+    inputBinding:
+      position: 0
+      prefix: '--primary-transcripts'
   - id: input_file
     type: File
     inputBinding:

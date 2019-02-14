@@ -2,8 +2,8 @@ import argparse
 import os
 import subprocess
 
-import transvar_wrapper
-import repeats
+from transvar_wrapper import TransvarAnnotator
+from repeats import RepeatAnnotator
 
 parser = argparse.ArgumentParser()
 
@@ -22,6 +22,12 @@ annotation_group.add_argument('--annotate-blast', action='store_true',
         help='If present, annotations for BLAST will be done. \
 Added fields will include HI')
 
+parser.add_argument('--primary-transcripts', type=str,
+        help='A .tsv file with genes in first column and ensembl transcript in second column. \
+Only necessary if --annotate-transvar flag is present')
+parser.add_argument('--repeats-table', type=str,
+        help='A .tsv file generated with ucsc table browser - repeats. \
+Only necessary if --annotate-repeats flag is present')
 parser.add_argument('--input-header', action='store_true',
         help='Whether input tsv file has header or not')
 parser.add_argument('--output', type=str,
@@ -34,13 +40,22 @@ args = parser.parse_args()
 def check_arguments():
     if args.input_type is None:
         raise ValueError('Must specify an input type')
-    if args.annotate_transvar is None and args.annotate_alu is None and args.annotate_blast is None:
+
+    if not args.annotate_transvar and not args.annotate_repeats:
         raise ValueError('Must specify a type of annotation to perform.')
 
-def check_transvar_setup():
+    if args.annotate_transvar and args.primary_transcripts is None:
+        raise ValueError('Must specify a primary transcripts file with --primary-transcripts flag \
+if using --annotate-transvar.')
+
+    if args.annotate_repeats and args.repeats_table is None:
+        raise ValueError('Must specify a repeats file with --repeats-table flag \
+if using --annotate-repeats. File can be downloaded with ucsc table browser (repeats).')
+
+def check_transvar_setup(transvar_annotator):
     """Will set up transvar if needed"""
     try:
-        result = transvar_wrapper.get_transcript_gene_strand_region_info_tup('chr1', '12345')
+        result = transvar_annotator.get_transcript_gene_strand_region_info_tup('chr1', '12345')
     except subprocess.CalledProcessError:
         print('Setting up transvar')
         tool_args = ['transvar', 'config', '--download_ref', '--refversion', 'hg38']
@@ -69,7 +84,7 @@ def get_simplified_region(transvar_region):
         return 'INTERGENIC'
     return '.'
 
-def annotate_transvar_tsv(fp, input_header=False):
+def annotate_transvar_tsv(transvar_annotator, fp, input_header=False):
     """Annotate transvar tsv"""
     out_lines = []
 
@@ -83,7 +98,7 @@ def annotate_transvar_tsv(fp, input_header=False):
         chrom = pieces [0]
         pos = pieces[1]
 
-        transcript, gene, strand, region, info = transvar_wrapper.get_transcript_gene_strand_region_info_tup(
+        transcript, gene, strand, region, info = transvar_annotator.get_transcript_gene_strand_region_info_tup(
                 chrom, pos)
         simplified_region = get_simplified_region(region)
 
@@ -96,7 +111,7 @@ def annotate_transvar_tsv(fp, input_header=False):
     f.write(output_str)
     f.close()
 
-def annotate_repeats_tsv(fp, input_header=False):
+def annotate_repeats_tsv(repeat_annotator, fp, input_header=False):
     """Annotate repeats tsv"""
     out_lines = []
 
@@ -110,7 +125,7 @@ def annotate_repeats_tsv(fp, input_header=False):
         chrom = pieces [0]
         pos = pieces[1]
 
-        repeat = repeats.get_repeat_by_position(chrom, pos)
+        repeat = repeat_annotator.get_repeat_by_position(chrom, pos)
 
         if repeat is not None:
             repeat_name, repeat_class, repeat_family = repeat
@@ -137,10 +152,12 @@ def main():
     out_f.close()
 
     if args.annotate_transvar:
-        check_transvar_setup()
-        annotate_transvar_tsv(args.output, input_header=args.input_header)
+        ta = TransvarAnnotator(args.primary_transcripts)
+        check_transvar_setup(ta)
+        annotate_transvar_tsv(ta, args.output, input_header=args.input_header)
     if args.annotate_repeats:
-        annotate_repeats_tsv(args.output, input_header=args.input_header)
+        ra = RepeatAnnotator(args.repeats_table)
+        annotate_repeats_tsv(ra, args.output, input_header=args.input_header)
 #     if args.annotate_blast:
 #         annotate_blast_tsv(args.output)
 

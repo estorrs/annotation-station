@@ -4,6 +4,12 @@ import subprocess
 import pytest
 
 TEST_DATA_DIR = 'tests/data/'
+
+TEST_GENE_TO_PRIMARY_TRANSCRIPT_FP = os.path.join(TEST_DATA_DIR,
+        'test.gene_to_primary_transcript.tsv')
+TEST_REPEATS_TABLE_FP = os.path.join(TEST_DATA_DIR,
+        'test.repeats_table.tsv')
+
 TEST_INPUT_FILE_1 = os.path.join(TEST_DATA_DIR, 'threshold.tsv')
 TEST_INPUT_FILE_2 = os.path.join(TEST_DATA_DIR, 'test.tsv')
 REPEATS_INPUT_FILE = os.path.join(TEST_DATA_DIR, 'repeats.tsv')
@@ -15,6 +21,7 @@ def test_transvar_annotation():
     tool_args = ['python', 'annotation-station/annotation_station.py',
             '--input-header',
             '--annotate-transvar',
+            '--primary-transcripts', TEST_GENE_TO_PRIMARY_TRANSCRIPT_FP,
             '--output', TEST_OUTPUT_FILE_1,
             '--input-type', 'tsv',
             TEST_INPUT_FILE_1]
@@ -27,6 +34,7 @@ def test_transvar_annotation_brca():
     tool_args = ['python', 'annotation-station/annotation_station.py',
             '--input-header',
             '--annotate-transvar',
+            '--primary-transcripts', TEST_GENE_TO_PRIMARY_TRANSCRIPT_FP,
             '--output', TEST_OUTPUT_FILE_2,
             '--input-type', 'tsv',
             TEST_INPUT_FILE_2]
@@ -40,6 +48,7 @@ def test_repeats_annotation():
     tool_args = ['python', 'annotation-station/annotation_station.py',
             '--input-header',
             '--annotate-repeats',
+            '--repeats-table', TEST_REPEATS_TABLE_FP,
             '--output', REPEATS_OUTPUT_FILE,
             '--input-type', 'tsv',
             REPEATS_INPUT_FILE]
@@ -53,7 +62,9 @@ def test_all_annotation():
     tool_args = ['python', 'annotation-station/annotation_station.py',
             '--input-header',
             '--annotate-repeats',
+            '--repeats-table', TEST_REPEATS_TABLE_FP,
             '--annotate-transvar',
+            '--primary-transcripts', TEST_GENE_TO_PRIMARY_TRANSCRIPT_FP,
             '--output', REPEATS_OUTPUT_FILE,
             '--input-type', 'tsv',
             REPEATS_INPUT_FILE]

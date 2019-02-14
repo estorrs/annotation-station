@@ -77,18 +77,23 @@ def get_repeat_collection(repeat_table_fp):
 
     return rc
 
+class RepeatAnnotator(object):
+    def __init__(self, repeat_table_fp):
+        self.repeat_collection = get_repeat_collection(repeat_table_fp)
+
+
 # repeats table from ucsc table viewer
-RP = get_repeat_collection(
-        os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data/repeats_table.grch38.tsv'))
+# RP = get_repeat_collection(
+#         os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data/repeats_table.grch38.tsv'))
 
 
-def get_repeat_by_position(chrom, pos):
-    """Returns repeat if there is one at given position.
+    def get_repeat_by_position(self, chrom, pos):
+        """Returns repeat if there is one at given position.
 
-    returns (repeat_name, repeat_class, repeat_family)
+        returns (repeat_name, repeat_class, repeat_family)
 
-    If no repeat is present at given position, then None is returned"""
-    repeat = RP.get_repeat(chrom, pos)
-    if repeat is not None:
-        return repeat[3], repeat[4], repeat[5]
-    return None
+        If no repeat is present at given position, then None is returned"""
+        repeat = self.repeat_collection.get_repeat(chrom, pos)
+        if repeat is not None:
+            return repeat[3], repeat[4], repeat[5]
+        return None
