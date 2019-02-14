@@ -1,5 +1,13 @@
 input_header: true
+annotate_transvar: true
+annotate_repeats: true
 input_type: "tsv"
 input_file:
   class: File
-  path: ../../tests/data/test.tsv
+  path: ../../tests/data/repeats.tsv
+primary_transcripts:
+  class: File
+  path: ../../tests/data/test.gene_to_primary_transcript.tsv
+repeats_table:
+  class: File
+  path: ../../tests/data/test.repeats_table.tsv

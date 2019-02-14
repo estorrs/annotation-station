@@ -17,6 +17,26 @@ inputs:
     inputBinding:
       position: 0
       prefix: '--input-header'
+  - id: annotate_repeats
+    type: boolean?
+    inputBinding:
+      position: 0
+      prefix: '--annotate-repeats'
+  - id: repeats_table
+    type: File?
+    inputBinding:
+      position: 0
+      prefix: '--repeats-table'
+  - id: annotate_transvar
+    type: boolean?
+    inputBinding:
+      position: 0
+      prefix: '--annotate-transvar'
+  - id: primary_transcripts
+    type: File?
+    inputBinding:
+      position: 0
+      prefix: '--primary-transcripts'
   - id: input_file
     type: File
     inputBinding:
@@ -33,4 +53,4 @@ arguments:
     valueFrom: output.tsv
 requirements:
   - class: DockerRequirement
-    dockerPull: 'estorrs/annotation-station:0.0.1'
+    dockerPull: 'estorrs/annotation-station:0.0.2'
