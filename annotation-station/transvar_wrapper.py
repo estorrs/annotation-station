@@ -1,11 +1,6 @@
 import os
 import subprocess
 
-
-# GENE_TO_PRIMARY_TRANSCRIPT_FP = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-#         'data/gene_to_primary_transcript.tsv')
-# GENE_TO_PRIMARY_TRANSCRIPT = {l.strip().split('\t')[0]:l.strip().split('\t')[1] for l in open(GENE_TO_PRIMARY_TRANSCRIPT_FP)}
-
 class TransvarAnnotator(object):
     def __init__(self, gene_to_primary_transcript_fp):
         self.gene_to_primary_transcript = {l.strip().split('\t')[0]:l.strip().split('\t')[1]
