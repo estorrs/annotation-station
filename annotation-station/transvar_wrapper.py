@@ -70,10 +70,11 @@ class TransvarAnnotator(object):
         return '.', '.', '.', '.', '.'
 
     def get_transcript_gene_strand_region_info_tup(self, chrom, position, ensembl_transcript=None,
-            use_primary=True):
+            use_primary=True, reference_version='hg38'):
         """Returns transcript, gene, strand, region, and info for the given position"""
         tool_args = ['transvar', 'ganno', '--ensembl', '--gencode', '--ucsc', '--refseq',
-                '-i', f'{chrom}:g.{position}']
+                '-i', f'{chrom}:g.{position}',
+                '--refversion', reference_version]
         result = subprocess.check_output(tool_args).decode('utf-8')
 
         if ensembl_transcript is None:

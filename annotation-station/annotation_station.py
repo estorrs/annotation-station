@@ -34,6 +34,8 @@ parser.add_argument('--output', type=str,
         default='output.tsv', help='output fp')
 parser.add_argument('--input-type', type=str,
         help='Type of input file. Options are tsv and json.')
+parser.add_argument('--reference-version', type=str,
+        default='hg38', help='Reference version to use for annotations')
 
 args = parser.parse_args()
 
@@ -52,16 +54,17 @@ if using --annotate-transvar.')
         raise ValueError('Must specify a repeats file with --repeats-table flag \
 if using --annotate-repeats. File can be downloaded with ucsc table browser (repeats).')
 
-def check_transvar_setup(transvar_annotator):
+def check_transvar_setup(transvar_annotator, reference_version='hg38'):
     """Will set up transvar if needed"""
     try:
-        result = transvar_annotator.get_transcript_gene_strand_region_info_tup('chr1', '12345')
+        result = transvar_annotator.get_transcript_gene_strand_region_info_tup('chr1', '12345',
+                reference_version=reference_version)
     except subprocess.CalledProcessError:
         print('Setting up transvar')
-        tool_args = ['transvar', 'config', '--download_ref', '--refversion', 'hg38']
+        tool_args = ['transvar', 'config', '--download_ref', '--refversion', reference_version]
         subprocess.check_output(tool_args)
     
-        tool_args = ['transvar', 'config', '--download_anno', '--refversion', 'hg38']
+        tool_args = ['transvar', 'config', '--download_anno', '--refversion', reference_version]
         subprocess.check_output(tool_args)
         print('finished transvar setup')
 
@@ -84,7 +87,7 @@ def get_simplified_region(transvar_region):
         return 'INTERGENIC'
     return '.'
 
-def annotate_transvar_tsv(transvar_annotator, fp, input_header=False):
+def annotate_transvar_tsv(transvar_annotator, fp, input_header=False, reference_version='hg38'):
     """Annotate transvar tsv"""
     out_lines = []
 
@@ -99,7 +102,7 @@ def annotate_transvar_tsv(transvar_annotator, fp, input_header=False):
         pos = pieces[1]
 
         transcript, gene, strand, region, info = transvar_annotator.get_transcript_gene_strand_region_info_tup(
-                chrom, pos)
+                chrom, pos, reference_version=reference_version)
         simplified_region = get_simplified_region(region)
 
         out_lines.append(line[:-1] + f'\t{transcript}\t{gene}\t{strand}\t{region}\t{simplified_region}\t{info}')
@@ -153,8 +156,9 @@ def main():
 
     if args.annotate_transvar:
         ta = TransvarAnnotator(args.primary_transcripts)
-        check_transvar_setup(ta)
-        annotate_transvar_tsv(ta, args.output, input_header=args.input_header)
+        check_transvar_setup(ta, reference_version=args.reference_version)
+        annotate_transvar_tsv(ta, args.output, input_header=args.input_header,
+                reference_version=args.reference_version)
     if args.annotate_repeats:
         ra = RepeatAnnotator(args.repeats_table)
         annotate_repeats_tsv(ra, args.output, input_header=args.input_header)
