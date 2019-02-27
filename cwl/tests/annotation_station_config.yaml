@@ -1,5 +1,6 @@
 input_header: true
 #annotate_transvar: true
+reference_version: "hg38"
 annotate_repeats: true
 input_type: "tsv"
 input_file:

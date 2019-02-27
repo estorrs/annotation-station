@@ -12,6 +12,11 @@ inputs:
     inputBinding:
       position: 0
       prefix: '--input-type'
+  - id: reference_version
+    type: string?
+    inputBinding:
+      position: 0
+      prefix: '--reference-version'
   - id: input_header
     type: boolean?
     inputBinding:
@@ -53,4 +58,4 @@ arguments:
     valueFrom: output.tsv
 requirements:
   - class: DockerRequirement
-    dockerPull: 'estorrs/annotation-station:test'
+    dockerPull: 'estorrs/annotation-station:cwltest'

@@ -39,23 +39,35 @@ parser.add_argument('--reference-version', type=str,
 
 args = parser.parse_args()
 
-DEFAULT_REPEATS_TABLE = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        'data/repeats_table.grch38.tsv')
+DEFAULT_GRCH38_REPEATS_TABLE = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        'data/repeats/repeats_table.grch38.tsv')
+DEFAULT_GRCH37_REPEATS_TABLE = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        'data/repeats/repeats_table.hg19.tsv')
+DEFAULT_GENE_TO_PRIMARY_TRANSCRIPT = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        'data/transcripts/gene_to_primary_transcript.tsv')
 
 def check_arguments():
     if args.input_type is None:
         raise ValueError('Must specify an input type')
 
-    if not args.annotate_transvar and not args.annotate_repeats:
-        raise ValueError('Must specify a type of annotation to perform.')
-
-    if args.annotate_transvar and args.primary_transcripts is None:
-        raise ValueError('Must specify a primary transcripts file with --primary-transcripts flag \
-if using --annotate-transvar.')
+#     if not args.annotate_transvar and not args.annotate_repeats:
+#         raise ValueError('Must specify a type of annotation to perform.')
+# 
+#     if args.annotate_transvar and args.primary_transcripts is None:
+#         raise ValueError('Must specify a primary transcripts file with --primary-transcripts flag \
+# if using --annotate-transvar.')
 
 #     if args.annotate_repeats and args.repeats_table is None:
 #         raise ValueError('Must specify a repeats file with --repeats-table flag \
 # if using --annotate-repeats. File can be downloaded with ucsc table browser (repeats).')
+
+def get_default_repeat_table(reference_version):
+    """Returns default repeat table fp for given reference"""
+    if reference_version == 'hg38' or reference_version == 'grch38':
+        return DEFAULT_GRCH38_REPEATS_TABLE
+    if reference_version == 'hg19' or reference_version == 'hg37' or reference_version == 'grch37':
+        return DEFAULT_GRCH37_REPEATS_TABLE
+    raise ValueError('Incompatible reference version for build in repeats table')
 
 def check_transvar_setup(transvar_annotator, reference_version='hg38'):
     """Will set up transvar if needed"""
@@ -158,13 +170,17 @@ def main():
     out_f.close()
 
     if args.annotate_transvar:
-        ta = TransvarAnnotator(args.primary_transcripts)
+        if args.primary_transcripts is None:
+            ta = TransvarAnnotator(DEFAULT_GENE_TO_PRIMARY_TRANSCRIPT)
+        else:
+            ta = TransvarAnnotator(args.primary_transcripts)
         check_transvar_setup(ta, reference_version=args.reference_version)
         annotate_transvar_tsv(ta, args.output, input_header=args.input_header,
                 reference_version=args.reference_version)
+
     if args.annotate_repeats:
         if args.repeats_table is None:
-            ra = RepeatAnnotator(DEFAULT_REPEATS_TABLE)
+            ra = RepeatAnnotator(get_default_repeat_table(args.reference_version))
         else:
             ra = RepeatAnnotator(args.repeats_table)
         annotate_repeats_tsv(ra, args.output, input_header=args.input_header)
