@@ -39,6 +39,9 @@ parser.add_argument('--reference-version', type=str,
 
 args = parser.parse_args()
 
+DEFAULT_REPEATS_TABLE = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        'data/repeats_table.grch38.tsv')
+
 def check_arguments():
     if args.input_type is None:
         raise ValueError('Must specify an input type')
@@ -50,9 +53,9 @@ def check_arguments():
         raise ValueError('Must specify a primary transcripts file with --primary-transcripts flag \
 if using --annotate-transvar.')
 
-    if args.annotate_repeats and args.repeats_table is None:
-        raise ValueError('Must specify a repeats file with --repeats-table flag \
-if using --annotate-repeats. File can be downloaded with ucsc table browser (repeats).')
+#     if args.annotate_repeats and args.repeats_table is None:
+#         raise ValueError('Must specify a repeats file with --repeats-table flag \
+# if using --annotate-repeats. File can be downloaded with ucsc table browser (repeats).')
 
 def check_transvar_setup(transvar_annotator, reference_version='hg38'):
     """Will set up transvar if needed"""
@@ -160,7 +163,10 @@ def main():
         annotate_transvar_tsv(ta, args.output, input_header=args.input_header,
                 reference_version=args.reference_version)
     if args.annotate_repeats:
-        ra = RepeatAnnotator(args.repeats_table)
+        if args.repeats_table is None:
+            ra = RepeatAnnotator(DEFAULT_REPEATS_TABLE)
+        else:
+            ra = RepeatAnnotator(args.repeats_table)
         annotate_repeats_tsv(ra, args.output, input_header=args.input_header)
 #     if args.annotate_blast:
 #         annotate_blast_tsv(args.output)

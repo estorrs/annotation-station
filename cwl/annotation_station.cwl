@@ -53,4 +53,4 @@ arguments:
     valueFrom: output.tsv
 requirements:
   - class: DockerRequirement
-    dockerPull: 'estorrs/annotation-station:0.0.3'
+    dockerPull: 'estorrs/annotation-station:test'
