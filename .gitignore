@@ -5,6 +5,5 @@ DS_Store
 
 cwl/tests/test_results/
 tests/data/reference/
-annotation-station/data/table_output.grch38.tsv
 *checkpoint.ipynb
 annotation-station/data/
