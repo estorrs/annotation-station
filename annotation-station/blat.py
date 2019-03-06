@@ -18,35 +18,28 @@ ANNOTATION_TO_INDICES = {
         'bitscore': 11
         }
 
-def parse_blat_output(output):
+def parse_blat_output(output_fp):
     """Returns list of dicts representing each line in output"""
     output_dicts = []
-    lines = output.split('\n')
-    for line in lines:
+    f = open(output_fp)
+    for line in f:
         d = {}
         pieces = line.split('\t')
-        for field, index in ANNOTATION_TO_INDICES.items():
-            d[field] = pieces[index]
+        if pieces:
+            for field, index in ANNOTATION_TO_INDICES.items():
+                d[field] = pieces[index]
 
-        output_dicts.append(d)
+            output_dicts.append(d)
+    f.close()
 
     return output_dicts
 
-def execute_blat(query_fp, database, out='blast8', output_fp='temp.out', remove_output=True):
+def execute_blat(query_fp, database, out='blast8', output_fp='temp.out'):
     tool_args = ['blat', database, query_fp,
             f'-out={out}',
             output_fp]
 
-    result = subprocess.check_output(tool_args).decode('utf-8')
-
-    f = open(output_fp)
-    result = f.read()
-    f.close()
-
-    if remove_output:
-        os.remove(output_fp)
-
-    return result
+    subprocess.check_output(tool_args).decode('utf-8')
 
 def is_in_range(chrom, pos, d):
     norm_chrom = re.sub(r'^chr(.*)$', r'\1', chrom)
@@ -112,8 +105,11 @@ class BlatAnnotator(object):
 
     def blat_fasta(self, input_fasta):
         """Blat the given fasta and collect results for each sequence in input fasta"""
-        blat_output = execute_blat(input_fasta, self.database)
-        output_dicts = parse_blat_output(blat_output)
+        execute_blat(input_fasta, self.database, output_fp='temp.out')
+        output_dicts = parse_blat_output('temp.out')
+
+        # remove temp output
+        os.remove('temp.out')
 
         sequence_to_results = defaultdict(list)
         for d in output_dicts:
