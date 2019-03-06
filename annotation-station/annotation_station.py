@@ -2,6 +2,7 @@ import argparse
 import os
 import subprocess
 
+import bam_utils
 #from blast import BlastAnnotator
 from blat import BlatAnnotator
 from repeats import RepeatAnnotator
@@ -38,8 +39,6 @@ parser.add_argument('--repeats-table', type=str,
 Only used if --annotate-repeats flag is present')
 
 # blat specific
-parser.add_argument('--blat-database', type=str,
-        help='Database to use with blat.')
 parser.add_argument('--blat-input-bam', type=str,
         help='Input bam containing reads to use for blat annotation. \
 Required if --annotate-blat is used.')
@@ -270,6 +269,10 @@ def main():
     f.close()
     out_f.close()
 
+    # index reference if it's there
+    if args.reference_fasta is not None:
+        bam_utils.index_reference(args.reference_fasta)
+
     if args.annotate_transvar:
         if args.primary_transcripts is None:
             ta = TransvarAnnotator(DEFAULT_GENE_TO_PRIMARY_TRANSCRIPT)
@@ -289,9 +292,9 @@ def main():
 
     if args.annotate_blat:
         ba = BlatAnnotator(['rna_editing'],
-                database=args.blat_database,
+                database=args.reference_fasta,
                 rna_editing_percent_threshold=args.rna_editing_percent_threshold)
-        annotate_blat_tsv(ba, args.output, args.blast_input_bam,
+        annotate_blat_tsv(ba, args.output, args.blat_input_bam,
                 input_header=args.input_header)
 
 if __name__ == '__main__':

@@ -34,7 +34,7 @@ def parse_blat_output(output):
 
 def execute_blat(query_fp, database, out='blast8', output_fp='temp.out', remove_output=True):
     tool_args = ['blat', database, query_fp,
-            f'--out={out}',
+            f'-out={out}',
             output_fp]
 
     result = subprocess.check_output(tool_args).decode('utf-8')
@@ -104,7 +104,7 @@ def prepare_input_files(input_bam_fp, output_fasta_fp, position_tups):
 
 
 class BlatAnnotator(object):
-    def __init__(self, annotations, database='GRCh38.d1.vd1.fa', rna_editing_percent_threshold=.95):
+    def __init__(self, annotations, database, rna_editing_percent_threshold=.95):
         self.annotations = annotations
         self.database = database
 

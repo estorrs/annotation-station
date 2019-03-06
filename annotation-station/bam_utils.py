@@ -1,4 +1,11 @@
+import os
 import subprocess
+
+def index_reference(reference_fasta_fp):
+    """index the given reference if it doesnt exist"""
+    if not os.path.isfile(reference_fasta_fp + '.fai'):
+        tool_args = ['samtools', 'faidx', reference_fasta_fp]
+        print(subprocess.check_output(tool_args).decode('utf-8'))
 
 def index_bam(bam_fp):
     """index the given bam."""

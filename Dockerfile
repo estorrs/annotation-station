@@ -26,9 +26,13 @@ RUN conda config --add channels defaults
 RUN conda config --add channels bioconda
 RUN conda config --add channels conda-forge
 
-# get blast and dependencies
-RUN conda install -y blast samtools
-ENV BLASTDB /annotation-station/annotation-station/data/blast_databases
+# # get blast and dependencies
+RUN conda install -y samtools
+# ENV BLASTDB /annotation-station/annotation-station/data/blast_databases
+
+# get blat
+RUN wget http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/blat/blat && mv blat /bin/
+RUN chmod u+x /bin/blat
 
 # set up working directory
 COPY . /annotation-station
