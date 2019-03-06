@@ -74,7 +74,6 @@ def write_position_fasta(input_bam_fp, positions_fp, output_fasta_fp):
         rc.put_read(chrom, start, seq)
     
     f = open(output_fasta_fp, 'w')
-    print(positions)
     for chrom, pos in positions:
         reads = rc.get_reads(chrom, pos)
         for i, (_, _, seq) in enumerate(reads):

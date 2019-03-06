@@ -2,7 +2,8 @@ import argparse
 import os
 import subprocess
 
-from blast import BlastAnnotator
+#from blast import BlastAnnotator
+from blat import BlatAnnotator
 from repeats import RepeatAnnotator
 from transvar_wrapper import TransvarAnnotator
 
@@ -19,9 +20,12 @@ annotation_group.add_argument('--annotate-repeats', action='store_true',
         help='If present, annotation for repeats will be done. i.e. for finding ALUs and stuff. \
 Added fields will be REPEAT_NAME, REPEAT_CLASS, and REPEAT_FAMILY. \
 Entry will be . if position is not a repeat.')
-annotation_group.add_argument('--annotate-blast', action='store_true',
-        help='If present, annotations for BLAST will be done. \
-Added fields will include BLAST_RNA_EDITING_%_PASSING')
+# annotation_group.add_argument('--annotate-blast', action='store_true',
+#         help='If present, annotations for BLAST will be done. \
+# Added fields will include BLAST_RNA_EDITING_%_PASSING')
+annotation_group.add_argument('--annotate-blat', action='store_true',
+        help='If present, annotations for BLAT will be done. \
+Added fields will include BLAT_RNA_EDITING_%_PASSING')
 
 # transvar specific
 parser.add_argument('--primary-transcripts', type=str,
@@ -33,25 +37,38 @@ parser.add_argument('--repeats-table', type=str,
         help='A .tsv file generated with ucsc table browser - repeats. \
 Only used if --annotate-repeats flag is present')
 
-# blast specific
-parser.add_argument('--blast-database', type=str,
-        help='Database to use with blast. Database must be installed on host')
-parser.add_argument('--blast-input-bam', type=str,
-        help='Input bam containing reads to use for blast annotation. \
-Required if --annotate-blast is used.')
-parser.add_argument('--rna-editing-identity-threshold', type=float,
-        default=.95, help='Percent identity threshold to use when calling a positive blast rna \
+# blat specific
+parser.add_argument('--blat-database', type=str,
+        help='Database to use with blat.')
+parser.add_argument('--blat-input-bam', type=str,
+        help='Input bam containing reads to use for blat annotation. \
+Required if --annotate-blat is used.')
+parser.add_argument('--rna-editing-percent-threshold', type=float,
+        default=.95, help='Percent identity threshold to use when calling a positive blat rna \
 editing read.')
-parser.add_argument('--rna-editing-coverage-threshold', type=float,
-        default=.90, help='Percent sequence coverage threshold to use when calling a positive \
-blast rna editing read.')
+
+# # blast specific
+# parser.add_argument('--blast-database', type=str,
+#         help='Database to use with blast. Database must be installed on host')
+# parser.add_argument('--blast-input-bam', type=str,
+#         help='Input bam containing reads to use for blast annotation. \
+# Required if --annotate-blast is used.')
+# parser.add_argument('--rna-editing-identity-threshold', type=float,
+#         default=.95, help='Percent identity threshold to use when calling a positive blast rna \
+# editing read.')
+# parser.add_argument('--rna-editing-coverage-threshold', type=float,
+#         default=.90, help='Percent sequence coverage threshold to use when calling a positive \
+# blast rna editing read.')
 
 parser.add_argument('--input-header', action='store_true',
         help='Whether input tsv file has header or not')
 parser.add_argument('--input-type', type=str,
         help='Type of input file. Options are tsv and json.')
 parser.add_argument('--reference-version', type=str,
-        default='hg38', help='Reference version to use for annotations')
+        default='hg38', help='Reference version to use for annotations. \
+Important for repeats and transvar')
+parser.add_argument('--reference-fasta', type=str,
+        help='Reference fasta to use for annotations with blat and transvar')
 parser.add_argument('--output', type=str,
         default='output.tsv', help='output fp')
 
@@ -67,15 +84,15 @@ DEFAULT_GENE_TO_PRIMARY_TRANSCRIPT = os.path.join(os.path.dirname(os.path.realpa
         'data/transcripts/gene_to_primary_transcript.tsv')
 DEFAULT_GENE_TO_PRIMARY_TRANSCRIPT = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         'data/transcripts/gene_to_primary_transcript.tsv')
-DEFAULT_GRCH38_BLAST_DATABASE = 'GRCh38.d1.vd1.fa'
-DEFAULT_GRCH37_BLAST_DATABASE = 'ucsc.hg19.fa'
+# DEFAULT_GRCH38_BLAST_DATABASE = 'GRCh38.d1.vd1.fa'
+# DEFAULT_GRCH37_BLAST_DATABASE = 'ucsc.hg19.fa'
 
 def check_arguments():
     if args.input_type is None:
         raise ValueError('Must specify an input type')
 
-    if args.annotate_blast and args.blast_input_bam is None:
-        raise ValueError('Must specify input bam to use for blast annotations')
+#     if args.annotate_blast and args.blast_input_bam is None:
+#         raise ValueError('Must specify input bam to use for blast annotations')
 
 #     if not args.annotate_transvar and not args.annotate_repeats:
 #         raise ValueError('Must specify a type of annotation to perform.')
@@ -96,27 +113,46 @@ def get_default_repeat_table(reference_version):
         return DEFAULT_GRCH37_REPEATS_TABLE
     raise ValueError('Incompatible reference version for built in repeats table')
 
-def get_default_blast_database(reference_version):
-    """Return default blast database for given reference"""
-    if reference_version == 'hg38' or reference_version == 'grch38':
-        return DEFAULT_GRCH38_BLAST_DATABASE
-    if reference_version == 'hg19' or reference_version == 'hg37' or reference_version == 'grch37':
-        return DEFAULT_GRCH37_BLAST_DATABASE
-    raise ValueError('Incompatible reference version for built in blast database')
+# def get_default_blast_database(reference_version):
+#     """Return default blast database for given reference"""
+#     if reference_version == 'hg38' or reference_version == 'grch38':
+#         return DEFAULT_GRCH38_BLAST_DATABASE
+#     if reference_version == 'hg19' or reference_version == 'hg37' or reference_version == 'grch37':
+#         return DEFAULT_GRCH37_BLAST_DATABASE
+#     raise ValueError('Incompatible reference version for built in blast database')
 
-def check_transvar_setup(transvar_annotator, reference_version='hg38'):
+def transvar_setup(transvar_annotator, reference_version='hg38', reference_fasta=None):
     """Will set up transvar if needed"""
     try:
         result = transvar_annotator.get_transcript_gene_strand_region_info_tup('chr1', '12345',
                 reference_version=reference_version)
     except subprocess.CalledProcessError:
         print('Setting up transvar')
-        tool_args = ['transvar', 'config', '--download_ref', '--refversion', reference_version]
+        if reference_fasta is None:
+            tool_args = ['transvar', 'config', '--download_ref', '--refversion', reference_version]
+        else:
+            tool_args = ['transvar', 'config', '-k', 'reference',
+                    '-v', reference_fasta,
+                    '--refversion', reference_version]
         subprocess.check_output(tool_args)
     
         tool_args = ['transvar', 'config', '--download_anno', '--refversion', reference_version]
         subprocess.check_output(tool_args)
         print('finished transvar setup')
+
+# def check_transvar_setup(transvar_annotator, reference_version='hg38'):
+#     """Will set up transvar if needed"""
+#     try:
+#         result = transvar_annotator.get_transcript_gene_strand_region_info_tup('chr1', '12345',
+#                 reference_version=reference_version)
+#     except subprocess.CalledProcessError:
+#         print('Setting up transvar')
+#         tool_args = ['transvar', 'config', '--download_ref', '--refversion', reference_version]
+#         subprocess.check_output(tool_args)
+#     
+#         tool_args = ['transvar', 'config', '--download_anno', '--refversion', reference_version]
+#         subprocess.check_output(tool_args)
+#         print('finished transvar setup')
 
 def get_simplified_region(transvar_region):
     """Converts transvar region to a simplified region
@@ -194,7 +230,7 @@ def annotate_repeats_tsv(repeat_annotator, fp, input_header=False):
     f.write(output_str)
     f.close()
 
-def annotate_blast_tsv(blast_annotator, fp, input_bam, input_header=False):
+def annotate_blat_tsv(blat_annotator, fp, input_bam, input_header=False):
     out_lines = []
     f = open(fp)
     if input_header:
@@ -205,7 +241,7 @@ def annotate_blast_tsv(blast_annotator, fp, input_bam, input_header=False):
         chrom_pos_tups.append((chrom, pos))
     f.close()
 
-    blast_annotations_dict, headers = blast_annotator.get_blast_annotations_for_bam(
+    blat_annotations_dict, headers = blat_annotator.get_blat_annotations_for_bam(
             input_bam, chrom_pos_tups)
 
     f = open(fp)
@@ -214,7 +250,7 @@ def annotate_blast_tsv(blast_annotator, fp, input_bam, input_header=False):
 
     for i, line in enumerate(f):
         chrom, pos = chrom_pos_tups[i]
-        annotations = blast_annotations_dict[(chrom, pos)]
+        annotations = blat_annotations_dict[(chrom, pos)]
         out_lines.append(line[:-1] + '\t' + '\t'.join([str(a) for a in annotations]))
     f.close()
 
@@ -239,7 +275,8 @@ def main():
             ta = TransvarAnnotator(DEFAULT_GENE_TO_PRIMARY_TRANSCRIPT)
         else:
             ta = TransvarAnnotator(args.primary_transcripts)
-        check_transvar_setup(ta, reference_version=args.reference_version)
+        check_transvar_setup(ta, reference_version=args.reference_version,
+                reference_fasta=args.reference_fasta)
         annotate_transvar_tsv(ta, args.output, input_header=args.input_header,
                 reference_version=args.reference_version)
 
@@ -250,18 +287,12 @@ def main():
             ra = RepeatAnnotator(args.repeats_table)
         annotate_repeats_tsv(ra, args.output, input_header=args.input_header)
 
-    if args.annotate_blast:
-        if args.blast_database is None:
-            db = get_default_blast_database(args.reference_version)
-        else:
-            db = args.blast_database
-        ba = BlastAnnotator(['rna_editing'],
-                database=db, max_target_seqs=5, max_hsps=5,
-                rna_editing_identity_threshold=args.rna_editing_identity_threshold,
-                rna_editing_coverage_threshold=args.rna_editing_coverage_threshold)
-        annotate_blast_tsv(ba, args.output, args.blast_input_bam,
+    if args.annotate_blat:
+        ba = BlatAnnotator(['rna_editing'],
+                database=args.blat_database,
+                rna_editing_percent_threshold=args.rna_editing_percent_threshold)
+        annotate_blat_tsv(ba, args.output, args.blast_input_bam,
                 input_header=args.input_header)
-
 
 if __name__ == '__main__':
     main()
