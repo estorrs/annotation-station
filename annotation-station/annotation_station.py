@@ -121,7 +121,7 @@ def get_default_repeat_table(reference_version):
 #         return DEFAULT_GRCH37_BLAST_DATABASE
 #     raise ValueError('Incompatible reference version for built in blast database')
 
-def transvar_setup(transvar_annotator, reference_version='hg38', reference_fasta=None):
+def check_transvar_setup(transvar_annotator, reference_version='hg38', reference_fasta=None):
     """Will set up transvar if needed"""
     try:
         result = transvar_annotator.get_transcript_gene_strand_region_info_tup('chr1', '12345',

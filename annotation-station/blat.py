@@ -129,7 +129,7 @@ class BlatAnnotator(object):
             count = 0
             for result_dicts in read_to_result_dicts.values():
                 if is_positive_rna_count(chrom, pos, result_dicts,
-                        percent_threshold=self.rna_editing_percent_threshold)
+                        percent_threshold=self.rna_editing_percent_threshold):
                     count += 1
 
             position_to_percent_passing[(chrom, pos)] = count / max(1, len(read_to_result_dicts))
