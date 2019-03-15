@@ -136,11 +136,12 @@ class BlatAnnotator(object):
                 reference_base = self.position_to_reference_base[(chrom, str(pos))]
                 read_base = bam_utils.get_base_by_position(int(read_data['start']), int(pos),
                         read_data['cigar'], read_data['sequence'])
-                if reference_base.lower() != read_base.lower():
-                    total += 1
-                    if is_positive_rna_count(chrom, pos, result_dicts,
-                            percent_threshold=self.rna_editing_percent_threshold):
-                        count += 1
+                if reference_base is not None and read_base is not None:
+                    if reference_base.lower() != read_base.lower():
+                        total += 1
+                        if is_positive_rna_count(chrom, pos, result_dicts,
+                                percent_threshold=self.rna_editing_percent_threshold):
+                            count += 1
 
             position_to_percent_passing[(chrom, pos)] = count / max(1, len(read_to_result_dicts))
 
