@@ -235,13 +235,15 @@ def annotate_blat_tsv(blat_annotator, fp, input_bam, input_header=False):
     if input_header:
         f.readline()
     chrom_pos_tups = []
+    reference_bases = []
     for line in f:
-        chrom, pos = line.strip().split('\t', 2)[:2]
+        chrom, pos, base = line.strip().split('\t', 2)[:3]
         chrom_pos_tups.append((chrom, pos))
+        reference_bases.append(base)
     f.close()
 
     blat_annotations_dict, headers = blat_annotator.get_blat_annotations_for_bam(
-            input_bam, chrom_pos_tups)
+            input_bam, chrom_pos_tups, reference_bases=reference_bases)
 
     f = open(fp)
     if input_header:

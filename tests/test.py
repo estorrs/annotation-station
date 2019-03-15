@@ -68,21 +68,20 @@ HG19_OUTPUT_FILE = os.path.join(TEST_DATA_DIR, 'test.hg19.output.tsv')
 #     l = [x for x in open(REPEATS_OUTPUT_FILE) if 'AluSc' in x][0]
 #     assert '43048295' in l
 # 
-# def test_blast_annotation_hg19():
-#     tool_args = ['python', 'annotation-station/annotation_station.py',
-#             '--input-header',
-#             '--reference-version', 'hg19',
-#             '--annotate-blast',
-#             '--blast-input-bam', HG19_BLAST_INPUT_BAM,
-#             '--rna-editing-identity-threshold', '.95',
-#             '--rna-editing-coverage-threshold', '.9',
-#             '--output', HG19_OUTPUT_FILE,
-#             '--input-type', 'tsv',
-#             HG19_BLAST_INPUT_FILE]
-#     
-#     results = subprocess.check_output(tool_args).decode('utf-8')
-# 
-#     assert len([x for x in open(HG19_OUTPUT_FILE) if '1.0' in x]) == 1
+def test_blast_annotation_hg19():
+    tool_args = ['python', 'annotation-station/annotation_station.py',
+            '--input-header',
+            '--reference-version', 'hg19',
+            '--reference-fasta', TEST_HG19_REFERENCE,
+            '--annotate-blat',
+            '--blat-input-bam', HG19_BLAT_INPUT_BAM,
+            '--output', HG19_OUTPUT_FILE,
+            '--input-type', 'tsv',
+            HG19_BLAT_INPUT_FILE]
+    
+    results = subprocess.check_output(tool_args).decode('utf-8')
+
+    assert len([x for x in open(HG19_OUTPUT_FILE) if '1.0' in x]) == 1
 # 
 # def test_all_annotation():
 #     tool_args = ['python', 'annotation-station/annotation_station.py',

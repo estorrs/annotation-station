@@ -31,8 +31,8 @@ RUN conda install -y samtools
 # ENV BLASTDB /annotation-station/annotation-station/data/blast_databases
 
 # get blat
-RUN wget http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/blat/blat && mv blat /bin/
-RUN chmod u+x /bin/blat
+RUN mkdir /blat_ucsc && wget http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/blat/blat && mv blat /blat_ucsc/ && chmod u+x /blat_ucsc/blat
+ENV PATH="$PATH:/blat_ucsc"
 
 # set up working directory
 COPY . /annotation-station

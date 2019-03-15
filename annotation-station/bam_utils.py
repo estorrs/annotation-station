@@ -42,7 +42,8 @@ class ReadCollection(object):
 
         for chrom, pos in self.chrom_to_positions[chrom]:
             if pos > start and pos < end:
-                self.position_to_reads[(chrom, pos)].append((chrom, start, sequence))
+                base = sequence[pos - start]
+                self.position_to_reads[(chrom, pos)].append((chrom, start, sequence, base))
 
             if pos > end:
                 break
@@ -51,7 +52,28 @@ class ReadCollection(object):
         return self.position_to_reads.get((chrom, pos), [])
 
 
-def write_position_fasta(input_bam_fp, positions_fp, output_fasta_fp):
+def get_reads_to_sequences_from_fasta(input_fasta_fp):
+    f = open(input_fasta_fp)
+
+    active_seq_id = None
+    active_seq = ''
+    reads_to_sequences = {}
+    for line in f:
+        line = line.strip()
+        if line[0] == '>':
+            if active_seq_id is not None:
+                reads_to_sequences[active_seq_id] = active_seq
+            active_seq_id = line[1:]
+        else:
+            active_seq += line
+    f.close()
+
+    return reads_to_sequences
+
+def write_position_fasta(input_bam_fp, positions_fp, output_fasta_fp, max_depth=1000):
+    """Writes a fasta with the given positions and bam.
+
+    Will also return a dict mapping reads to their sequence"""
     tool_args = ['samtools', 'view',
             '-L', positions_fp,
              input_bam_fp]
@@ -81,9 +103,20 @@ def write_position_fasta(input_bam_fp, positions_fp, output_fasta_fp):
         rc.put_read(chrom, start, seq)
     
     f = open(output_fasta_fp, 'w')
+    reads_to_data = {}
     for chrom, pos in positions:
         reads = rc.get_reads(chrom, pos)
-        for i, (_, _, seq) in enumerate(reads):
+        for i, (_, _, seq, base) in enumerate(reads):
             f.write(f'>{chrom}:{pos}|{i}\n')
             f.write(seq + '\n')
+
+            reads_to_data[f'{chrom}:{pos}|{i}'] = {
+                    'sequence': seq,
+                    'sequence_base': base
+                    }
+
+            if i >= max_depth:
+                break
     f.close()
+
+    return reads_to_data
