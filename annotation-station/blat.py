@@ -60,6 +60,9 @@ def is_positive_rna_count(chrom, read_start, read_end, blat_result_dicts, percen
     # sort blast result dicts by score
     blat_result_dicts = sorted(blat_result_dicts, key=lambda x: float(x['bitscore']), reverse=True)
 
+#     print(blat_result_dicts)
+#     print(chrom, read_start, read_end)
+
     # if no passing return false
     if len(blat_result_dicts) == 0:
         return False
@@ -74,10 +77,15 @@ def is_positive_rna_count(chrom, read_start, read_end, blat_result_dicts, percen
     if len(blat_result_dicts) == 1:
         return True
 
-    # check second entry to see if it meets threshold
-    d = blat_result_dicts[1]
-    if float(d['bitscore']) > percent_threshold * score:
-        return False
+    # cycle through until non in range entry is found and see if it meets threshold
+    for d in blat_result_dicts[1:]:
+        if is_in_range(chrom, read_start, read_end, d):
+            pass
+        elif float(d['bitscore']) > percent_threshold * score:
+            return False
+        else:
+            return True
+    
 
     return True
 
@@ -135,6 +143,7 @@ class BlatAnnotator(object):
             count, total = 0, 0
             for read, result_dicts in read_to_result_dicts.items():
                 read_data = self.reads_to_data[f'{chrom}:{pos}|{read}']
+                #print(read_data)
                 
                 reference_base = self.position_to_reference_base[(chrom, str(pos))]
                 read_start, read_end = bam_utils.get_covering_reference_coords(int(read_data['start']),
@@ -144,12 +153,14 @@ class BlatAnnotator(object):
 
                 if reference_base is not None and read_base is not None:
                     if reference_base.lower() != read_base.lower():
+                #        print(is_positive_rna_count(chrom, read_start, read_end, result_dicts,
+                                percent_threshold=self.rna_editing_percent_threshold))
                         total += 1
                         if is_positive_rna_count(chrom, read_start, read_end, result_dicts,
                                 percent_threshold=self.rna_editing_percent_threshold):
                             count += 1
 
-            position_to_percent_passing[(chrom, pos)] = count / max(1, len(read_to_result_dicts))
+            position_to_percent_passing[(chrom, pos)] = count / max(1, total)
 
         return position_to_percent_passing
 

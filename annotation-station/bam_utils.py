@@ -161,8 +161,8 @@ class ReadCollection(object):
         self.position_to_reads = {p:[] for p in position_tups}
 
     def put_read(self, chrom, start, cigar, sequence, **kwargs):
-        start = int(start)
-        end = start + len(sequence)
+        start, end = get_covering_reference_coords(int(start), cigar, sequence)
+        start, end = int(start), int(end)
 
         for chrom, pos in self.chrom_to_positions[chrom]:
             if pos > start and pos < end:
