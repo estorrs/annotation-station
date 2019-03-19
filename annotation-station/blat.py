@@ -42,16 +42,19 @@ def execute_blat(query_fp, database, out='blast8', output_fp='temp.out'):
 
     subprocess.check_output(tool_args).decode('utf-8')
 
-def is_in_range(chrom, pos, d):
+def is_in_range(chrom, read_start, read_end, d):
     norm_chrom = re.sub(r'^chr(.*)$', r'\1', chrom)
     chrom = re.sub(r'^chr(.*)$', r'\1', d['sseqid'])
     start_pos = int(d['sstart'])
     end_pos = int(d['send'])
-    if chrom == norm_chrom and start_pos <= pos and end_pos >= pos:
+
+    start_pos_in_range = start_pos <= read_end + 1 and start_pos >= read_start - 1
+    end_pos_in_range = end_pos <= read_end + 1 and end_pos >= read_start - 1
+    if chrom == norm_chrom and start_pos_in_range and end_pos_in_range:
         return True
     return False
 
-def is_positive_rna_count(chrom, pos, blat_result_dicts, percent_threshold=.95):
+def is_positive_rna_count(chrom, read_start, read_end, blat_result_dicts, percent_threshold=.95):
     norm_chrom = re.sub(r'^chr(.*)$', r'\1', chrom)
 
     # sort blast result dicts by score
@@ -63,7 +66,7 @@ def is_positive_rna_count(chrom, pos, blat_result_dicts, percent_threshold=.95):
 
     # check first entry to see if it is in right position
     d = blat_result_dicts[0]
-    if not is_in_range(chrom, pos, d):
+    if not is_in_range(chrom, read_start, read_end, d):
         return False
     score = float(d['bitscore'])
 
@@ -134,13 +137,15 @@ class BlatAnnotator(object):
                 read_data = self.reads_to_data[f'{chrom}:{pos}|{read}']
                 
                 reference_base = self.position_to_reference_base[(chrom, str(pos))]
+                read_start, read_end = bam_utils.get_covering_reference_coords(int(read_data['start']),
+                        read_data['cigar'], read_data['sequence'])
                 read_base = bam_utils.get_base_by_position(int(read_data['start']), int(pos),
                         read_data['cigar'], read_data['sequence'])
 
                 if reference_base is not None and read_base is not None:
                     if reference_base.lower() != read_base.lower():
                         total += 1
-                        if is_positive_rna_count(chrom, pos, result_dicts,
+                        if is_positive_rna_count(chrom, read_start, read_end, result_dicts,
                                 percent_threshold=self.rna_editing_percent_threshold):
                             count += 1
 
