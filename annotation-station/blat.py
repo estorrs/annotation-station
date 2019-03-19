@@ -25,7 +25,7 @@ def parse_blat_output(output_fp):
     f = open(output_fp)
     for line in f:
         d = {}
-        pieces = line.split('\t')
+        pieces = line.strip().split('\t')
         if pieces:
             for field, index in ANNOTATION_TO_INDICES.items():
                 d[field] = pieces[index]
@@ -136,6 +136,7 @@ class BlatAnnotator(object):
                 reference_base = self.position_to_reference_base[(chrom, str(pos))]
                 read_base = bam_utils.get_base_by_position(int(read_data['start']), int(pos),
                         read_data['cigar'], read_data['sequence'])
+
                 if reference_base is not None and read_base is not None:
                     if reference_base.lower() != read_base.lower():
                         total += 1
