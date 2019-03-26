@@ -149,7 +149,7 @@ def annotate_transvar_tsv(transvar_annotator, fp, input_header=False, reference_
         out_lines.append(f.readline()[:-1] + '\tPRIMARY_TRANSCRIPT\tGENE\tSTRAND\tREGION\tNON_VERBOSE_REGION\tINFO')
 
     for line in f:
-        pieces = line.strip().split('\t', 2)
+        pieces = line.strip().split('\t')
         chrom = pieces[0]
         pos = pieces[1]
 
