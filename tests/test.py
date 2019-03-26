@@ -131,21 +131,21 @@ def test_blast_annotation_hg19():
 #     l = [x for x in open(REPEATS_OUTPUT_FILE) if 'AluSc' in x][0]
 #     assert '43048295' in l and 'BRCA1' in l and 'ENST00000471181' in l
 # 
-def test_all_annotation_defaults_hg19_plus_blat():
-    tool_args = ['python', 'annotation-station/annotation_station.py',
-            '--input-header',
-            '--reference-version', 'hg19',
-            '--reference-fasta', TEST_HG19_REFERENCE,
-            '--annotate-repeats',
-            '--annotate-transvar',
-            '--annotate-blat',
-            '--blat-input-bam', HG19_BLAT_INPUT_BAM,
-            '--output', HG19_OUTPUT_FILE,
-            '--input-type', 'tsv',
-            HG19_BLAT_INPUT_FILE]
-    
-    results = subprocess.check_output(tool_args).decode('utf-8')
-
-    l = [x for x in open(HG19_OUTPUT_FILE) if '1.0' in x][0]
-    
-    assert '41200990' in l and 'BRCA1' in l and 'ENST00000471181' in l
+# def test_all_annotation_defaults_hg19_plus_blat():
+#     tool_args = ['python', 'annotation-station/annotation_station.py',
+#             '--input-header',
+#             '--reference-version', 'hg19',
+#             '--reference-fasta', TEST_HG19_REFERENCE,
+#             '--annotate-repeats',
+#             '--annotate-transvar',
+#             '--annotate-blat',
+#             '--blat-input-bam', HG19_BLAT_INPUT_BAM,
+#             '--output', HG19_OUTPUT_FILE,
+#             '--input-type', 'tsv',
+#             HG19_BLAT_INPUT_FILE]
+#     
+#     results = subprocess.check_output(tool_args).decode('utf-8')
+# 
+#     l = [x for x in open(HG19_OUTPUT_FILE) if '1.0' in x][0]
+#     
+#     assert '41200990' in l and 'BRCA1' in l and 'ENST00000471181' in l

@@ -237,7 +237,7 @@ def annotate_blat_tsv(blat_annotator, fp, input_bam, input_header=False):
     chrom_pos_tups = []
     reference_bases = []
     for line in f:
-        chrom, pos, base = line.strip().split('\t', 2)[:3]
+        chrom, pos, base = line.strip().split('\t', 3)[:3]
         chrom_pos_tups.append((chrom, pos))
         reference_bases.append(base)
     f.close()
