@@ -21,9 +21,6 @@ annotation_group.add_argument('--annotate-repeats', action='store_true',
         help='If present, annotation for repeats will be done. i.e. for finding ALUs and stuff. \
 Added fields will be REPEAT_NAME, REPEAT_CLASS, and REPEAT_FAMILY. \
 Entry will be . if position is not a repeat.')
-# annotation_group.add_argument('--annotate-blast', action='store_true',
-#         help='If present, annotations for BLAST will be done. \
-# Added fields will include BLAST_RNA_EDITING_%_PASSING')
 annotation_group.add_argument('--annotate-blat', action='store_true',
         help='If present, annotations for BLAT will be done. \
 Added fields will include BLAT_RNA_EDITING_%_PASSING')
@@ -32,6 +29,9 @@ Added fields will include BLAT_RNA_EDITING_%_PASSING')
 parser.add_argument('--primary-transcripts', type=str,
         help='A .tsv file with genes in first column and ensembl transcript in second column. \
 Only used if --annotate-transvar flag is present')
+parser.add_argument('--with-base-change', action='store_true',
+        help='Use base ref/alt base change with annotations. The third column in input file must \
+be the reference base, and the fourth column must be the alternative base')
 
 # repeats specific
 parser.add_argument('--repeats-table', type=str,
@@ -46,18 +46,6 @@ parser.add_argument('--rna-editing-percent-threshold', type=float,
         default=.95, help='Percent identity threshold to use when calling a positive blat rna \
 editing read.')
 
-# # blast specific
-# parser.add_argument('--blast-database', type=str,
-#         help='Database to use with blast. Database must be installed on host')
-# parser.add_argument('--blast-input-bam', type=str,
-#         help='Input bam containing reads to use for blast annotation. \
-# Required if --annotate-blast is used.')
-# parser.add_argument('--rna-editing-identity-threshold', type=float,
-#         default=.95, help='Percent identity threshold to use when calling a positive blast rna \
-# editing read.')
-# parser.add_argument('--rna-editing-coverage-threshold', type=float,
-#         default=.90, help='Percent sequence coverage threshold to use when calling a positive \
-# blast rna editing read.')
 
 parser.add_argument('--input-header', action='store_true',
         help='Whether input tsv file has header or not')
@@ -112,14 +100,6 @@ def get_default_repeat_table(reference_version):
         return DEFAULT_GRCH37_REPEATS_TABLE
     raise ValueError('Incompatible reference version for built in repeats table')
 
-# def get_default_blast_database(reference_version):
-#     """Return default blast database for given reference"""
-#     if reference_version == 'hg38' or reference_version == 'grch38':
-#         return DEFAULT_GRCH38_BLAST_DATABASE
-#     if reference_version == 'hg19' or reference_version == 'hg37' or reference_version == 'grch37':
-#         return DEFAULT_GRCH37_BLAST_DATABASE
-#     raise ValueError('Incompatible reference version for built in blast database')
-
 def check_transvar_setup(transvar_annotator, reference_version='hg38', reference_fasta=None):
     """Will set up transvar if needed"""
     try:
@@ -138,20 +118,6 @@ def check_transvar_setup(transvar_annotator, reference_version='hg38', reference
         tool_args = ['transvar', 'config', '--download_anno', '--refversion', reference_version]
         subprocess.check_output(tool_args)
         print('finished transvar setup')
-
-# def check_transvar_setup(transvar_annotator, reference_version='hg38'):
-#     """Will set up transvar if needed"""
-#     try:
-#         result = transvar_annotator.get_transcript_gene_strand_region_info_tup('chr1', '12345',
-#                 reference_version=reference_version)
-#     except subprocess.CalledProcessError:
-#         print('Setting up transvar')
-#         tool_args = ['transvar', 'config', '--download_ref', '--refversion', reference_version]
-#         subprocess.check_output(tool_args)
-#     
-#         tool_args = ['transvar', 'config', '--download_anno', '--refversion', reference_version]
-#         subprocess.check_output(tool_args)
-#         print('finished transvar setup')
 
 def get_simplified_region(transvar_region):
     """Converts transvar region to a simplified region
@@ -172,7 +138,8 @@ def get_simplified_region(transvar_region):
         return 'INTERGENIC'
     return '.'
 
-def annotate_transvar_tsv(transvar_annotator, fp, input_header=False, reference_version='hg38'):
+def annotate_transvar_tsv(transvar_annotator, fp, input_header=False, reference_version='hg38',
+            with_base_change=False):
     """Annotate transvar tsv"""
     out_lines = []
 
@@ -183,11 +150,18 @@ def annotate_transvar_tsv(transvar_annotator, fp, input_header=False, reference_
 
     for line in f:
         pieces = line.strip().split('\t', 2)
-        chrom = pieces [0]
+        chrom = pieces[0]
         pos = pieces[1]
 
-        transcript, gene, strand, region, info = transvar_annotator.get_transcript_gene_strand_region_info_tup(
-                chrom, pos, reference_version=reference_version)
+        if with_base_change:
+            ref_base, alt_base = pieces[2], pieces[3]
+            transcript, gene, strand, region, info = transvar_annotator.get_transcript_gene_strand_region_info_tup(
+                    chrom, pos, reference_version=reference_version, ref_base=ref_base,
+                    alt_base=alt_base)
+        else:
+            transcript, gene, strand, region, info = transvar_annotator.get_transcript_gene_strand_region_info_tup(
+                    chrom, pos, reference_version=reference_version)
+
         simplified_region = get_simplified_region(region)
 
         out_lines.append(line[:-1] + f'\t{transcript}\t{gene}\t{strand}\t{region}\t{simplified_region}\t{info}')
@@ -283,7 +257,7 @@ def main():
         check_transvar_setup(ta, reference_version=args.reference_version,
                 reference_fasta=args.reference_fasta)
         annotate_transvar_tsv(ta, args.output, input_header=args.input_header,
-                reference_version=args.reference_version)
+                reference_version=args.reference_version, with_base_change=args.with_base_change)
 
     if args.annotate_repeats:
         if args.repeats_table is None:

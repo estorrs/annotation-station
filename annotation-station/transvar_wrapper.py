@@ -6,7 +6,6 @@ class TransvarAnnotator(object):
         self.gene_to_primary_transcript = {l.strip().split('\t')[0]:l.strip().split('\t')[1]
                 for l in open(gene_to_primary_transcript_fp)}
 
-
     def get_gene_from_transvar_lines(self, transvar_lines):
         for line in transvar_lines:
             pieces = line.strip().split('\t')
@@ -70,11 +69,16 @@ class TransvarAnnotator(object):
         return '.', '.', '.', '.', '.'
 
     def get_transcript_gene_strand_region_info_tup(self, chrom, position, ensembl_transcript=None,
-            use_primary=True, reference_version='hg38'):
+            use_primary=True, reference_version='hg38', ref_base=None, alt_base=None):
         """Returns transcript, gene, strand, region, and info for the given position"""
-        tool_args = ['transvar', 'ganno', '--ensembl', '--gencode', '--ucsc', '--refseq',
-                '-i', f'{chrom}:g.{position}',
-                '--refversion', reference_version]
+        if ref_base is not None and alt_base is not None:
+            tool_args = ['transvar', 'ganno', '--ensembl', '--gencode', '--ucsc', '--refseq',
+                    '-i', f'{chrom}:g.{position}{ref_base.upper()}>{alt_base.upper()}',
+                    '--refversion', reference_version]
+        else:
+            tool_args = ['transvar', 'ganno', '--ensembl', '--gencode', '--ucsc', '--refseq',
+                    '-i', f'{chrom}:g.{position}',
+                    '--refversion', reference_version]
         result = subprocess.check_output(tool_args).decode('utf-8')
 
         if ensembl_transcript is None:
