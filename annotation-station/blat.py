@@ -112,7 +112,7 @@ class BlatAnnotator(object):
         out_f.close()
 
         self.reads_to_data = bam_utils.write_position_fasta(input_bam_fp,
-                temp_positions_fp, output_fasta_fp)
+                temp_positions_fp, output_fasta_fp, max_depth=1000)
 
         os.remove(temp_positions_fp)
 
