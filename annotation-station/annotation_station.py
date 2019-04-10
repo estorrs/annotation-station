@@ -71,32 +71,16 @@ DEFAULT_GENE_TO_PRIMARY_TRANSCRIPT = os.path.join(os.path.dirname(os.path.realpa
         'data/transcripts/gene_to_primary_transcript.tsv')
 DEFAULT_GENE_TO_PRIMARY_TRANSCRIPT = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         'data/transcripts/gene_to_primary_transcript.tsv')
-# DEFAULT_GRCH38_BLAST_DATABASE = 'GRCh38.d1.vd1.fa'
-# DEFAULT_GRCH37_BLAST_DATABASE = 'ucsc.hg19.fa'
 
 def check_arguments():
     if args.input_type is None:
         raise ValueError('Must specify an input type')
 
-#     if args.annotate_blast and args.blast_input_bam is None:
-#         raise ValueError('Must specify input bam to use for blast annotations')
-
-#     if not args.annotate_transvar and not args.annotate_repeats:
-#         raise ValueError('Must specify a type of annotation to perform.')
-# 
-#     if args.annotate_transvar and args.primary_transcripts is None:
-#         raise ValueError('Must specify a primary transcripts file with --primary-transcripts flag \
-# if using --annotate-transvar.')
-
-#     if args.annotate_repeats and args.repeats_table is None:
-#         raise ValueError('Must specify a repeats file with --repeats-table flag \
-# if using --annotate-repeats. File can be downloaded with ucsc table browser (repeats).')
-
 def get_default_repeat_table(reference_version):
     """Returns default repeat table fp for given reference"""
-    if reference_version == 'hg38' or reference_version == 'grch38':
+    if reference_version.lower() == 'hg38' or reference_version.lower() == 'grch38':
         return DEFAULT_GRCH38_REPEATS_TABLE
-    if reference_version == 'hg19' or reference_version == 'hg37' or reference_version == 'grch37':
+    if reference_version.lower() == 'hg19' or reference_version.lower() == 'hg37' or reference_version.lower() == 'grch37':
         return DEFAULT_GRCH37_REPEATS_TABLE
     raise ValueError('Incompatible reference version for built in repeats table')
 
