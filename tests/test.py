@@ -56,7 +56,7 @@ def test_transvar_annotation_with_base_change():
     results = subprocess.check_output(tool_args).decode('utf-8')
 
     lines = open('test.output').read().strip().split('\n')
-    assert 'BRCA' in lines[1] and 'CSQN' in lines[1]
+    assert 'BRCA' in lines[1] and 'CSQN' in lines[1] and 'p.' in lines[1]
 # 
 # def test_transvar_annotation_brca():
 #     tool_args = ['python', 'annotation-station/annotation_station.py',
