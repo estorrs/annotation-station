@@ -130,7 +130,7 @@ def annotate_transvar_tsv(transvar_annotator, fp, input_header=False, reference_
     f = open(fp)
 
     if input_header:
-        out_lines.append(f.readline()[:-1] + '\tPRIMARY_TRANSCRIPT\tGENE\tSTRAND\tREGION\tNON_VERBOSE_REGION\tINFO')
+        out_lines.append(f.readline()[:-1] + '\tPRIMARY_TRANSCRIPT\tGENE\tSTRAND\tCOORDINATES\tREGION\tNON_VERBOSE_REGION\tINFO')
 
     for line in f:
         pieces = line.strip().split('\t')
@@ -139,16 +139,16 @@ def annotate_transvar_tsv(transvar_annotator, fp, input_header=False, reference_
 
         if with_base_change:
             ref_base, alt_base = pieces[2], pieces[3]
-            transcript, gene, strand, region, info = transvar_annotator.get_transcript_gene_strand_region_info_tup(
+            transcript, gene, strand, coordinates, region, info = transvar_annotator.get_transcript_gene_strand_region_info_tup(
                     chrom, pos, reference_version=reference_version, ref_base=ref_base,
                     alt_base=alt_base)
         else:
-            transcript, gene, strand, region, info = transvar_annotator.get_transcript_gene_strand_region_info_tup(
+            transcript, gene, strand, coordinates, region, info = transvar_annotator.get_transcript_gene_strand_region_info_tup(
                     chrom, pos, reference_version=reference_version)
 
         simplified_region = get_simplified_region(region)
 
-        out_lines.append(line[:-1] + f'\t{transcript}\t{gene}\t{strand}\t{region}\t{simplified_region}\t{info}')
+        out_lines.append(line[:-1] + f'\t{transcript}\t{gene}\t{strand}\t{coordinates}\t{region}\t{simplified_region}\t{info}')
     f.close()
 
     output_str = '\n'.join(out_lines) + '\n'
@@ -200,8 +200,24 @@ def annotate_blat_tsv(blat_annotator, fp, input_bam, input_header=False):
         reference_bases.append(base)
     f.close()
 
-    blat_annotations_dict, headers = blat_annotator.get_blat_annotations_for_bam(
-            input_bam, chrom_pos_tups, reference_bases=reference_bases)
+    # chunk into 5000 position pieces
+    chunked_chrom_pos_tups = []
+    chunked_reference_bases = []
+    prev = 0
+    for i in range(5000, len(chrom_pos_tups) + 5000, 5000):
+        chunked_chrom_pos_tups.append(chrom_pos_tups[prev:i])
+        chunked_reference_bases.append(reference_bases[prev:i])
+        prev = i
+    
+    blat_annotations_dict = {}
+    headers = []
+    for chrom_pos_chunk, reference_bases_chunk in zip(
+            chunked_chrom_pos_tups, chunked_reference_bases):
+        if chunked_chrom_pos_tups and chunked_reference_bases:
+            d, h = blat_annotator.get_blat_annotations_for_bam(input_bam, chrom_pos_tups,
+                    reference_bases=reference_bases)
+            blat_annotations_dict.update(d)
+            headers = h
 
     f = open(fp)
     if input_header:

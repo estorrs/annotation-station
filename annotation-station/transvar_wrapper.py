@@ -44,21 +44,22 @@ class TransvarAnnotator(object):
                 transcript = pieces[1].split(' ')[0]
                 gene = pieces[2]
                 strand = pieces[3]
+                coordinates = pieces[4]
                 region = pieces[5]
                 info = pieces[6]
 
                 # check for first transcript
                 if i == 0:
-                    first_transcript = (transcript, gene, strand, region, info)
+                    first_transcript = (transcript, gene, strand, coordinates, region, info)
                 # check for ensembl
                 if 'source=Ensembl' in info and first_ensembl is None:
-                    first_ensembl = (transcript, gene, strand, region, info)
+                    first_ensembl = (transcript, gene, strand, coordinates, region, info)
                 # check for primary transcript
                 is_primary = transcript.lower().split('.')[0] == ensembl_transcript.lower().split('.')[0]
                 if 'source=Ensembl' in info and is_primary:
-                    return transcript, gene, strand, region, info
+                    return transcript, gene, strand, coordinates, region, info
                 elif is_primary:
-                    primary_transcript = (transcript, gene, strand, region, info)
+                    primary_transcript = (transcript, gene, strand, coordinates, region, info)
 
         if primary_transcript is not None:
             return primary_transcript
@@ -66,7 +67,7 @@ class TransvarAnnotator(object):
             return first_ensembl
         if first_transcript is not None:
             return first_transcript
-        return '.', '.', '.', '.', '.'
+        return '.', '.', '.', '.', '.', '.'
 
     def get_transcript_gene_strand_region_info_tup(self, chrom, position, ensembl_transcript=None,
             use_primary=True, reference_version='hg38', ref_base=None, alt_base=None):
