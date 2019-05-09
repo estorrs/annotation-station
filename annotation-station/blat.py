@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import subprocess
@@ -5,6 +6,8 @@ import uuid
 from collections import defaultdict
 
 import bam_utils
+
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 ANNOTATION_TO_INDICES = {
         'qseqid': 0,
@@ -33,6 +36,8 @@ def parse_blat_output(output_fp):
             output_dicts.append(d)
     f.close()
 
+    logging.info(f'{len(output_dicts)} total blat hits returned for session')
+
     return output_dicts
 
 def execute_blat(query_fp, database, out='blast8', output_fp='temp.out'):
@@ -40,7 +45,9 @@ def execute_blat(query_fp, database, out='blast8', output_fp='temp.out'):
             f'-out={out}',
             output_fp]
 
+    logging.info('started executing blat')
     subprocess.check_output(tool_args).decode('utf-8')
+    logging.info('finished executing blat')
 
 def is_in_range(chrom, read_start, read_end, d):
     norm_chrom = re.sub(r'^chr(.*)$', r'\1', chrom)
@@ -100,10 +107,13 @@ class BlatAnnotator(object):
         """prepare input files that BlastAnnotator needs if reading from bam and position file
     
         position_tups - [(chrom, pos), ...]"""
+
         # index the bam in case it isn't already
+        logging.info('indexing input bam')
         bam_utils.index_bam(input_bam_fp)
 
         # create a positions file that will work with samtools in case input doesn't
+        logging.info(f'creating temporary position bed for {len(position_tups)} positions')
         u_id = str(uuid.uuid4())
         temp_positions_fp = f'temp.positions.{u_id}.bed'
         out_f = open(temp_positions_fp, 'w')
@@ -112,7 +122,9 @@ class BlatAnnotator(object):
         out_f.close()
 
         self.reads_to_data = bam_utils.write_position_fasta(input_bam_fp,
-                temp_positions_fp, output_fasta_fp, max_depth=1000)
+                temp_positions_fp, output_fasta_fp, max_depth=200)
+
+        logging.info(f'retaining data for {len(self.reads_to_data)} reads')
 
         os.remove(temp_positions_fp)
 

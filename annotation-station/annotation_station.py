@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 import subprocess
 
@@ -7,6 +8,8 @@ import bam_utils
 from blat import BlatAnnotator
 from repeats import RepeatAnnotator
 from transvar_wrapper import TransvarAnnotator
+
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 parser = argparse.ArgumentParser()
 
@@ -90,7 +93,7 @@ def check_transvar_setup(transvar_annotator, reference_version='hg38', reference
         result = transvar_annotator.get_transcript_gene_strand_region_info_tup('chr1', '12345',
                 reference_version=reference_version)
     except subprocess.CalledProcessError:
-        print('Setting up transvar')
+        logging.info('Setting up transvar')
         if reference_fasta is None:
             tool_args = ['transvar', 'config', '--download_ref', '--refversion', reference_version]
         else:
@@ -101,7 +104,7 @@ def check_transvar_setup(transvar_annotator, reference_version='hg38', reference
     
         tool_args = ['transvar', 'config', '--download_anno', '--refversion', reference_version]
         subprocess.check_output(tool_args)
-        print('finished transvar setup')
+        logging.info('finished transvar setup')
 
 def get_simplified_region(transvar_region):
     """Converts transvar region to a simplified region
@@ -201,21 +204,25 @@ def annotate_blat_tsv(blat_annotator, fp, input_bam, input_header=False):
     f.close()
 
     # chunk into 5000 position pieces
+    chunk_size = 1000
     chunked_chrom_pos_tups = []
     chunked_reference_bases = []
     prev = 0
-    for i in range(5000, len(chrom_pos_tups) + 5000, 5000):
+    logging.info(f'starting processing of {len(chrom_pos_tups)} total positions')
+    logging.info(f'using chunk size of {chunk_size}')
+    for i in range(chunk_size, len(chrom_pos_tups) + chunk_size, chunk_size):
         chunked_chrom_pos_tups.append(chrom_pos_tups[prev:i])
         chunked_reference_bases.append(reference_bases[prev:i])
         prev = i
     
     blat_annotations_dict = {}
     headers = []
-    for chrom_pos_chunk, reference_bases_chunk in zip(
-            chunked_chrom_pos_tups, chunked_reference_bases):
-        if chunked_chrom_pos_tups and chunked_reference_bases:
-            d, h = blat_annotator.get_blat_annotations_for_bam(input_bam, chrom_pos_tups,
-                    reference_bases=reference_bases)
+    for i, (chrom_pos_chunk, reference_bases_chunk) in enumerate(zip(
+            chunked_chrom_pos_tups, chunked_reference_bases)):
+        if chrom_pos_chunk and reference_bases_chunk:
+            logging.info(f'processing chunk {i + 1} of {len(chunked_chrom_pos_tups)}')
+            d, h = blat_annotator.get_blat_annotations_for_bam(input_bam, chrom_pos_chunk,
+                    reference_bases=reference_bases_chunk)
             blat_annotations_dict.update(d)
             headers = h
 
@@ -250,6 +257,7 @@ def main():
         bam_utils.index_reference(args.reference_fasta)
 
     if args.annotate_transvar:
+        logging.info('Beginning transvar annotations')
         if args.primary_transcripts is None:
             ta = TransvarAnnotator(DEFAULT_GENE_TO_PRIMARY_TRANSCRIPT)
         else:
@@ -260,6 +268,7 @@ def main():
                 reference_version=args.reference_version, with_base_change=args.with_base_change)
 
     if args.annotate_repeats:
+        logging.info('Begginging repeat annotations')
         if args.repeats_table is None:
             ra = RepeatAnnotator(get_default_repeat_table(args.reference_version))
         else:
@@ -267,6 +276,7 @@ def main():
         annotate_repeats_tsv(ra, args.output, input_header=args.input_header)
 
     if args.annotate_blat:
+        logging.info('Beginning blat annotations')
         ba = BlatAnnotator(['rna_editing'],
                 database=args.reference_fasta,
                 rna_editing_percent_threshold=args.rna_editing_percent_threshold)
