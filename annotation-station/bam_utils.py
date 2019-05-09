@@ -1,6 +1,9 @@
+import logging
 import os
 import re
 import subprocess
+
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 BOTH_COUNTS = set(['M', 'X', '='])
 REFERENCE_COUNTS = set(['N', 'D'])
@@ -214,7 +217,7 @@ def get_reads_to_sequences_from_fasta_stream(input_fasta_stream):
 
     return reads_to_sequences
 
-def get_chrom_start_cigar_seq_read_tups(input_bam_fp, positions_fp, max_depth=10000):
+def get_chrom_start_cigar_seq_read_tups(input_bam_fp, positions_fp, max_depth=200):
     tool_args = ['samtools', 'view',
             '-L', positions_fp,
              input_bam_fp]
@@ -231,10 +234,11 @@ def get_chrom_start_cigar_seq_read_tups(input_bam_fp, positions_fp, max_depth=10
 
     return read_tups
 
-def write_position_fasta(input_bam_fp, positions_fp, output_fasta_fp, max_depth=1000):
+def write_position_fasta(input_bam_fp, positions_fp, output_fasta_fp, max_depth=200):
     """Writes a fasta with the given positions and bam.
 
     Will also return a dict mapping reads to their sequence"""
+    logging.info('writing position fasta')
     tool_args = ['samtools', 'view',
             '-L', positions_fp,
              input_bam_fp]
@@ -242,6 +246,7 @@ def write_position_fasta(input_bam_fp, positions_fp, output_fasta_fp, max_depth=
     output = subprocess.check_output(('cut', '-f', '3,4,6,10'), stdin=ps_1.stdout).decode('utf-8')
     ps_1.wait()
     
+    logging.info(f'reading in read tuples')
     read_tups = []
     for line in output.split('\n'):
         if line:
@@ -258,11 +263,13 @@ def write_position_fasta(input_bam_fp, positions_fp, output_fasta_fp, max_depth=
         positions.append((pieces[0], int(pieces[1])))
     f.close()
 
+    logging.info(f'creating read collection with {len(read_tups)} reads covering {len(positions)} positions')
     # create read collection
     rc = ReadCollection(positions)
     for chrom, start, cigar, seq in read_tups:
         rc.put_read(chrom, start, cigar, seq)
 
+    logging.info('writing reads data dictionary')
     f = open(output_fasta_fp, 'w')
     reads_to_data = {}
     for chrom, pos in positions:
